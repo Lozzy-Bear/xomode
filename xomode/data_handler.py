@@ -1,3 +1,4 @@
+import dataclasses
 import glob
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
@@ -5,11 +6,21 @@ import matplotlib
 import h5py
 import numpy as np
 import datetime
+import pretty_plots
 
-np.set_printoptions(threshold=np.inf)
 
-matplotlib.rcParams['figure.figsize'] = [15.0, 12.0]
-matplotlib.rcParams.update({'font.size': 16})
+# 'S', 'ch', 'freqs', 'id', 'ranges', 'rate', 'sr', 'station_name', 't0'
+@dataclasses.dataclass
+class Data:
+    signal: float        # intensity shape = (freqs, ranges)
+    channel: int         # channel name from digital_rf
+    freq: float          # transmitting freqs in Hz shape = (freqs, )
+    id: int              # link identification integer?
+    ranges: int          # range gates in meters shape = (ranges, )
+    chirp_rate: float    # chirp rate in Hz per 1 second
+    sampling_rate: str   # sampling rate in Hz
+    station: str         # station name string
+    time0: float         # initial time in second since epoch
 
 
 def normalize(S):
@@ -21,8 +32,8 @@ def normalize(S):
     return (S)
 
 
-data_dir = "2022.05.02/oul/2022-05-02"
-fl = glob.glob("%s/lfm*.h5" % (data_dir))
+data_dir = "/home/arl203/iono/2022.05.02/oul/2022-05-02"
+fl = glob.glob(f"{data_dir}/lfm*.h5")
 fl.sort()
 
 epoch = datetime.datetime.utcfromtimestamp(0)
@@ -43,9 +54,16 @@ for x in range(20):
     print(f0)
 
     for fi, f in enumerate(fl):
+        h = h5py.File(f, "r")
+        keys = h.keys()
+        print(keys)
+        for key in keys:
+            d = h[f'{key}'][()]
+            print(key, type(d), d)
+        print('exiting...')
+        exit()
         try:
             h = h5py.File(f, "r")
-            # print(h.keys())
             #        S=normalize(h["S"][()])
             S = h["S"][()]
             fr = h["freqs"][()] / 1e6
