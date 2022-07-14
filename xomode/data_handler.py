@@ -34,7 +34,7 @@ def load_data(filepath, station='*', year='*', month='*', day='*', epoch='*', fr
     for idx, file in enumerate(files):
         # 'S', 'ch', 'freqs', 'id', 'ranges', 'rate', 'sr', 'station_name', 't0'
         f = h5py.File(file, 'r')
-        data.signal[idx, :, :] = normalize_intensity(f['S'][()])
+        data.signal[idx, :, :] = normalize(f['S'][()])
         data.channel[idx] = f['ch'][()]
         data.frequency[idx, :] = f['freqs'][()]/1e6
         data.id[idx] = f['id'][()]
@@ -46,9 +46,28 @@ def load_data(filepath, station='*', year='*', month='*', day='*', epoch='*', fr
     return data
 
 
-def normalize_intensity(x, cutoff=0.0, default=1e-3):
-    noise_floor = np.median(x)
-    std_floor = np.median(np.abs(x - noise_floor))
+def normalize(x, cutoff=0.1, default=1e-3):
+    """
+    Normalize intensity data per frequency bin and take the log10.
+
+    Parameters
+    ----------
+        x : ndarray float
+            (frequency bins, range bins) signal intensity.
+        cutoff : float
+            noise floor intensity cutoff under which is mapped to default.
+        default : float
+            the default minimum intensity value; ideally above 0.0 for taking log10.
+
+    Returns
+    -------
+        x : ndarray float
+            (frequency bins, range bins) frequency bin normalized signal intensity.
+    """
+    noise_floor = np.median(x, axis=0)
+    noise_floor = np.tile(noise_floor, (650, 1))
+    std_floor = np.median(np.abs(x - noise_floor), axis=0)
+    std_floor = np.tile(std_floor, (650, 1))
     x = (x - noise_floor) / std_floor
     x[x < cutoff] = default
     return x
