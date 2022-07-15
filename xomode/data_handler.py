@@ -2,6 +2,8 @@ import dataclasses
 import glob
 import h5py
 import numpy as np
+import scipy.signal as sig
+import scipy.ndimage as ndi
 
 
 @dataclasses.dataclass
@@ -64,22 +66,33 @@ def normalize(x, cutoff=0.1, default=1e-3):
         x : ndarray float
             (frequency bins, range bins) frequency bin normalized signal intensity.
     """
-    noise_floor = np.median(x, axis=0)
-    noise_floor = np.tile(noise_floor, (650, 1))
-    std_floor = np.median(np.abs(x - noise_floor), axis=0)
-    std_floor = np.tile(std_floor, (650, 1))
+    noise_floor = np.mean(x, axis=0)
+    noise_floor = np.tile(noise_floor, (x.shape[0], 1))
+    std_floor = np.mean(np.abs(x - noise_floor), axis=0)
+    std_floor = np.tile(std_floor, (x.shape[0], 1))
     x = (x - noise_floor) / std_floor
     x[x < cutoff] = default
     return x
 
 
-def shit():
-    for x in range(20):
-        f0 = x / 2
-        for fi, f in enumerate(fl):
-            h = h5py.File(f, "r")
-            S = h["S"][()]
-            fr = h["freqs"][()] / 1e6
-            fidx[:] = np.argmin(np.abs(f0 - fr[:]))
-            S0[x, fi, :] = S[fidx, :] / np.median(np.abs(S[fidx, :]))
+def intensity_db(x, min=1e-3):
+    x = 20 * np.log10(x)
+    x[x == np.nan] = min
+    x[x <= 0.0] = min
+    return x
+
+
+def despeckle(x, std=50.0, size=2):
+    # Apply a gaussian window per frequency bin
+    gaussian = sig.windows.gaussian(x.shape[0], std, sym=True)[:, np.newaxis]
+    fft = np.fft.fftshift(np.fft.fft(x, axis=0))
+    # fft[320:331, :] = 0.0
+    x = np.fft.ifft(np.fft.ifftshift(fft * gaussian), axis=0)
+    x = np.abs(x)
+    # Apply a median filter
+    h = np.zeros((x.shape[0], x.shape[0]))
+    h[0:x.shape[0], 0:x.shape[1]] = x
+    h = ndi.median_filter(h, size=size)
+    x = h[0:x.shape[0], 0:x.shape[1]]
+    return x
 
