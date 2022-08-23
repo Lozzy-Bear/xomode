@@ -75,6 +75,32 @@ def normalize(x, cutoff=0.1, default=1e-3):
     return x
 
 
+def normalize_range(x, cutoff=0.1, default=1e-3):
+    """
+    Normalize intensity data per frequency bin and take the log10.
+
+    Parameters
+    ----------
+        x : ndarray float
+            (frequency bins, range bins) signal intensity.
+        cutoff : float
+            noise floor intensity cutoff under which is mapped to default.
+        default : float
+            the default minimum intensity value; ideally above 0.0 for taking log10.
+
+    Returns
+    -------
+        x : ndarray float
+            (frequency bins, range bins) frequency bin normalized signal intensity.
+    """
+    noise_floor = np.mean(x, axis=1)
+    noise_floor = np.tile(noise_floor, (x.shape[1], 1)).T
+    std_floor = np.mean(np.abs(x - noise_floor), axis=1)
+    std_floor = np.tile(std_floor, (x.shape[1], 1)).T
+    x = (x - noise_floor) / std_floor
+    x[x < cutoff] = default
+    return x
+
 def intensity_db(x, min=1e-3):
     x = 20 * np.log10(x)
     x[x == np.nan] = min
@@ -86,7 +112,7 @@ def despeckle(x, std=50.0, size=2):
     # Apply a gaussian window per frequency bin
     gaussian = sig.windows.gaussian(x.shape[0], std, sym=True)[:, np.newaxis]
     fft = np.fft.fftshift(np.fft.fft(x, axis=0))
-    # fft[320:331, :] = 0.0
+    fft[320:331, :] = 0.0
     x = np.fft.ifft(np.fft.ifftshift(fft * gaussian), axis=0)
     x = np.abs(x)
     # Apply a median filter

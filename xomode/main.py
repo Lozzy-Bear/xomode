@@ -9,13 +9,14 @@ import computer_vision
 
 
 def main():
-    # f = h5py.File('/home/arl203/iono/2022.05.02/oul/2022-05-02/lfm_ionogram-Oulu-001-1651449714.00.h5', 'r')
-    f = h5py.File('/home/arl203/iono/2022.05.02/oul/2022-05-02/lfm_ionogram-Oulu-001-1651458774.00.h5', 'r')
+    f = h5py.File('/home/arl203/iono/2022.05.02/oul/2022-05-02/lfm_ionogram-Oulu-001-1651449714.00.h5', 'r')
+    # f = h5py.File('/home/arl203/iono/2022.05.02/oul/2022-05-02/lfm_ionogram-Oulu-001-1651458774.00.h5', 'r')
     freq = f['freqs'][()] / 1e6
     rng = f['ranges'][()] / 1e3
     S = f['S'][()]
     S = np.swapaxes(S, 0, 1)
     S = data_handler.normalize(S, cutoff=0.1)
+    S = data_handler.normalize_range(S, cutoff=0.1)
     g = data_handler.despeckle(S, std=50.0, size=2)
     S = data_handler.intensity_db(S)
     g = data_handler.intensity_db(g)
