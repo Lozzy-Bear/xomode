@@ -101,6 +101,7 @@ def normalize_range(x, cutoff=0.1, default=1e-3):
     x[x < cutoff] = default
     return x
 
+
 def intensity_db(x, min=1e-3):
     x = 20 * np.log10(x)
     x[x == np.nan] = min

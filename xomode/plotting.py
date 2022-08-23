@@ -16,7 +16,6 @@ pyplot.rc('legend', fontsize=SMALL_SIZE)  # legend font size
 pyplot.rc('figure', titlesize=BIGGER_SIZE)  # font size of the figure title
 
 
-
 colormaps = ['Greys', 'Purples', 'Blues', 'Oranges', 'Greens', 'Reds']
 legend_elements = []
 

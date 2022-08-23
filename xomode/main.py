@@ -17,7 +17,7 @@ def main():
     S = np.swapaxes(S, 0, 1)
     S = data_handler.normalize(S, cutoff=0.1)
     S = data_handler.normalize_range(S, cutoff=0.1)
-    g = data_handler.despeckle(S, std=50.0, size=2)
+    g = data_handler.despeckle(S, std=50.0, size=1)
     S = data_handler.intensity_db(S)
     g = data_handler.intensity_db(g)
 
@@ -38,13 +38,35 @@ def main():
     plt.tight_layout()
     plt.show()
 
+    # convert to a 255 bit image
     img = np.flipud(g)
     img = img / np.max(img) * 255
     img = img.astype(np.uint8)
     cv2.imshow('initial stage', img)
-    img = computer_vision.morphology(img, n=1)
-    cv2.imshow('morphology stage', img)
+
+    # apply a blur + erode + dilate morphology
     # img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 7, 5)
+    img = computer_vision.morphology(img, n=3)
+    cv2.imshow('morphology stage', img)
+
+    # apply a partial ellipse Hough transform
+    # todo: make this work
+    cimg = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, 1, 20,
+                               param1=50, param2=30, minRadius=0, maxRadius=0)
+    circles = np.uint16(np.around(circles))
+    for i in circles[0, :]:
+        # draw the outer circle
+        cv2.circle(cimg, (i[0], i[1]), i[2], (0, 255, 0), 2)
+        # draw the center of the circle
+        cv2.circle(cimg, (i[0], i[1]), 2, (0, 0, 255), 3)
+    plt.subplot(121), plt.imshow(img)
+    plt.title('Input Image'), plt.xticks([]), plt.yticks([])
+    plt.subplot(122), plt.imshow(cimg)
+    plt.title('Hough Transform'), plt.xticks([]), plt.yticks([])
+    plt.show()
+
+    # try canny edge detect
     edges = cv2.Canny(img, 100, 200)
     cv2.imshow('edges', edges)
 
