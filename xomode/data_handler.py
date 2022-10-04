@@ -109,11 +109,12 @@ def intensity_db(x, min=1e-3):
     return x
 
 
-def despeckle(x, std=50.0, size=2):
+def despeckle(x, std=50.0, size=2, notch=10):
     # Apply a gaussian window per frequency bin
     gaussian = sig.windows.gaussian(x.shape[0], std, sym=True)[:, np.newaxis]
     fft = np.fft.fftshift(np.fft.fft(x, axis=0))
-    fft[320:331, :] = 0.0
+    mid = int(fft.shape[0]/2 + 1)
+    fft[(mid-notch):(mid+notch), :] = 0.0
     x = np.fft.ifft(np.fft.ifftshift(fft * gaussian), axis=0)
     x = np.abs(x)
     # Apply a median filter
@@ -122,4 +123,36 @@ def despeckle(x, std=50.0, size=2):
     h = ndi.median_filter(h, size=size)
     x = h[0:x.shape[0], 0:x.shape[1]]
     return x
+
+
+def kernel_density_filter(f, r, w):
+    """
+    todo: Make this work. What I am trying to do is make a density plot of the data to define percentile
+            regions which I can then crop to. So I need Freq, Range, and S for weighting. Probs run this
+            after we despeckle.
+    """
+    from scipy import stats
+    import matplotlib.pyplot as plt
+    lat = r
+    lon = f
+    lat_min = np.min(lat)
+    lat_max = np.max(lat)
+    lon_min = np.min(lon)
+    lon_max = np.max(lon)
+
+    # Peform the kernel density estimate
+    xx, yy = np.mgrid[lon_min:lon_max:100j, lat_min:lat_max:100j]
+    positions = np.vstack([xx.ravel(), yy.ravel()])
+    values = np.vstack([lon, lat])
+    kernel = stats.gaussian_kde(values, weights=w)
+    z = np.reshape(kernel(positions).T, xx.shape)
+
+    fig, ax = plt.subplots()
+    ax.imshow(np.rot90(z), cmap=plt.cm.gist_earth_r, extent=[lon_min, lon_max, lat_min, lat_max])
+    ax.plot(lon, lat, 'k.', markersize=2)
+    # ax.set_ylim([lat_min, lat_max])
+    # ax.set_xlim([lon_min, lon_max])
+    plt.show()
+
+    return
 

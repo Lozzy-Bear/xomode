@@ -15,9 +15,18 @@ def main():
     rng = f['ranges'][()] / 1e3
     S = f['S'][()]
     S = np.swapaxes(S, 0, 1)
+
+    g = np.copy(S)
+    # g = data_handler.normalize(g, cutoff=0.1)
+
     S = data_handler.normalize(S, cutoff=0.1)
-    S = data_handler.normalize_range(S, cutoff=0.1)
-    g = data_handler.despeckle(S, std=50.0, size=1)
+    # S = data_handler.normalize_range(S, cutoff=0.1)
+
+
+    # data_handler.kernel_density_filter(freq, rng)
+    # exit()
+
+    # g = data_handler.despeckle(g, std=30.0, size=3, notch=1)
     S = data_handler.intensity_db(S)
     g = data_handler.intensity_db(g)
 
@@ -43,6 +52,9 @@ def main():
     img = img / np.max(img) * 255
     img = img.astype(np.uint8)
     cv2.imshow('initial stage', img)
+
+    computer_vision.ellipses(img)
+    exit()
 
     # apply a blur + erode + dilate morphology
     # img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 7, 5)
